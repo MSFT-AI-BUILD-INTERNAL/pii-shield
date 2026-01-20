@@ -43,6 +43,8 @@ def greet(name: str = "World") -> None:
 
 if __name__ == "__main__":
     # Simple demonstration when run directly
+    from pii_shield import __version__
+    
     greet()
     greet("PII Shield")
-    print(f"\nThis is a reusable module from the pii-shield package (v{__package__})")
+    print(f"\nThis is a reusable module from the pii-shield package (v{__version__})")
