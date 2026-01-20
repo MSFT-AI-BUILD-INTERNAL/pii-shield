@@ -1,0 +1,7 @@
+{
+  "name": "Agentic Marketing Dev Container",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "features": {
+  },
+  "postCreateCommand": "bash ./init.sh"
+}
