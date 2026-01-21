@@ -15,11 +15,12 @@ recognizers:
       - language: ko
         context: [신용카드, 카드번호, 카드, credit, card]
 
-  - name: EmailRecognizer
-    type: predefined
-    supported_languages:
-      - language: ko
-        context: [이메일, 메일, email, e-mail]
+  # EmailRecognizer disabled - use KrEmailRecognizer instead for consistent KR_EMAIL entity
+  # - name: EmailRecognizer
+  #   type: predefined
+  #   supported_languages:
+  #     - language: ko
+  #       context: [이메일, 메일, email, e-mail]
 
   - name: IpRecognizer
     type: predefined
@@ -83,19 +84,55 @@ recognizers:
         regex: "\\d{3,4}-\\d{2,4}-\\d{4,6}"
         score: 0.6
 
-  # Korean Name (이름) - Disabled: too many false positives
-  # Use spaCy NER for name detection instead
+  # Korean Name (이름)
+  # Pattern-based Korean name detection with strict context
   - name: KrNameRecognizer
     type: custom
     supported_entity: KR_NAME
-    enabled: false
     supported_languages:
       - language: ko
-        context: [이름, 성명, 고객님, 담당자, 님께서, 배송 담당]
+        context: [이름, 성명, 고객님, 담당자, 님께서]
     patterns:
-      - name: "Korean Name 2-4 chars"
-        regex: "([가-힣]{2,4})"
-        score: 0.3
+      # 이름님 패턴 (김철수님, 홍길동님) - 뒤에 고객이 안오는 경우만
+      - name: "Korean Name with 님 suffix"
+        regex: "([가-힣]{2,4})(?=님(?!의|께|,))"
+        score: 0.7
+      # 이름님의/님께서 패턴
+      - name: "Korean Name with 님의/님께 suffix"
+        regex: "([가-힣]{2,4})(?=님의|님께)"
+        score: 0.7
+      # 이름입니다 패턴 (김철수입니다)
+      - name: "Korean Name with 입니다 suffix"
+        regex: "([가-힣]{2,4})(?=입니다)"
+        score: 0.75
+      # 담당자 이름 (담당자 최지원의) - 조사 포함
+      - name: "Korean Name after 담당자"
+        regex: "(?<=담당자\\s)([가-힣]{2,4})(?=의|에게|,|\\s)"
+        score: 0.7
+      # 배송 담당 이름 패턴 (배송 담당 이순신)
+      - name: "Korean Name after 배송 담당"
+        regex: "(?<=배송 담당\\s)([가-힣]{2,4})"
+        score: 0.7
+      # 어이 이름 패턴 (어이 철수)
+      - name: "Korean Name after 어이"
+        regex: "(?<=어이\\s)([가-힣]{2,4})"
+        score: 0.7
+      # 이봐요 이름 패턴 (이봐요 영희)
+      - name: "Korean Name after 이봐요"
+        regex: "(?<=이봐요\\s)([가-힣]{2,4})"
+        score: 0.7
+      # 이름씨 패턴 (김철수씨) - 성+이름 3글자 이상만
+      - name: "Korean Name with 씨 suffix"
+        regex: "([가-힣]{3,4})(?=씨)"
+        score: 0.7
+      # 안녕하세요, 이름 패턴
+      - name: "Korean Name after 안녕하세요"
+        regex: "(?<=안녕하세요,\\s)([가-힣]{2,4})"
+        score: 0.7
+      # 이름 고객님 패턴 (정약용 고객님, 이영희 고객님) - 공백 필수
+      - name: "Korean Name before 고객님"
+        regex: "([가-힣]{2,4})(?=\\s고객님)"
+        score: 0.75
 
   # Korean Email (이메일)
   - name: KrEmailRecognizer
@@ -107,4 +144,4 @@ recognizers:
     patterns:
       - name: "Email Pattern"
         regex: "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
-        score: 0.85
+        score: 0.95
