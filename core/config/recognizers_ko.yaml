@@ -1,0 +1,110 @@
+# Korean PII Recognizers Configuration
+# Reference: https://microsoft.github.io/presidio/analyzer/recognizer_registry_provider/
+
+global_regex_flags: 26  # re.IGNORECASE | re.MULTILINE | re.DOTALL
+
+supported_languages:
+  - ko
+
+recognizers:
+  # ==================== Predefined Recognizers ====================
+  
+  - name: CreditCardRecognizer
+    type: predefined
+    supported_languages:
+      - language: ko
+        context: [신용카드, 카드번호, 카드, credit, card]
+
+  - name: EmailRecognizer
+    type: predefined
+    supported_languages:
+      - language: ko
+        context: [이메일, 메일, email, e-mail]
+
+  - name: IpRecognizer
+    type: predefined
+    supported_languages:
+      - language: ko
+
+  - name: UrlRecognizer
+    type: predefined
+    supported_languages:
+      - language: ko
+
+  - name: SpacyRecognizer
+    type: predefined
+    supported_languages:
+      - language: ko
+
+  # ==================== Korean Custom Recognizers ====================
+  
+  # Korean Resident Registration Number (주민등록번호)
+  - name: KrResidentRegistrationNumberRecognizer
+    type: custom
+    supported_entity: KR_SSN
+    supported_languages:
+      - language: ko
+        context: [주민등록번호, 주민번호, 주민, resident registration, rrn]
+    patterns:
+      - name: "Korean RRN with hyphen"
+        regex: "\\d{6}-\\d{7}"
+        score: 0.9
+      - name: "Korean RRN without hyphen"
+        regex: "(?<!\\d)\\d{2}[0-1]\\d[0-3]\\d[1-4]\\d{6}(?!\\d)"
+        score: 0.7
+
+  # Korean Phone Number (휴대폰/전화번호)
+  - name: KrPhoneNumberRecognizer
+    type: custom
+    supported_entity: KR_PHONE_NUMBER
+    supported_languages:
+      - language: ko
+        context: [전화번호, 휴대폰, 핸드폰, 연락처, phone, mobile, tel]
+    patterns:
+      - name: "Korean Mobile with hyphen"
+        regex: "01[0-9]-\\d{3,4}-\\d{4}"
+        score: 0.85
+      - name: "Korean Mobile without hyphen"
+        regex: "(?<!\\d)01[0-9]\\d{7,8}(?!\\d)"
+        score: 0.6
+      - name: "Korean Landline with hyphen"
+        regex: "0\\d{1,2}-\\d{3,4}-\\d{4}"
+        score: 0.8
+
+  # Korean Bank Account (계좌번호)
+  - name: KrBankAccountRecognizer
+    type: custom
+    supported_entity: KR_BANK_ACCOUNT
+    supported_languages:
+      - language: ko
+        context: [계좌번호, 계좌, 은행, bank account, account number, 입금, 출금, 환불]
+    patterns:
+      - name: "Korean Bank Account"
+        regex: "\\d{3,4}-\\d{2,4}-\\d{4,6}"
+        score: 0.6
+
+  # Korean Name (이름) - Disabled: too many false positives
+  # Use spaCy NER for name detection instead
+  - name: KrNameRecognizer
+    type: custom
+    supported_entity: KR_NAME
+    enabled: false
+    supported_languages:
+      - language: ko
+        context: [이름, 성명, 고객님, 담당자, 님께서, 배송 담당]
+    patterns:
+      - name: "Korean Name 2-4 chars"
+        regex: "([가-힣]{2,4})"
+        score: 0.3
+
+  # Korean Email (이메일)
+  - name: KrEmailRecognizer
+    type: custom
+    supported_entity: KR_EMAIL
+    supported_languages:
+      - language: ko
+        context: [이메일, 메일, email, e-mail, 메일 주소]
+    patterns:
+      - name: "Email Pattern"
+        regex: "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
+        score: 0.85

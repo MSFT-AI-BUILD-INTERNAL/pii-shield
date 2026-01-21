@@ -6,6 +6,7 @@ Loads dataset.csv and evaluates PII detection performance.
 
 import csv
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import List, Tuple, Dict
 
@@ -15,7 +16,6 @@ sys.path.insert(0, str(project_root))
 
 from core import PIIShield
 from core.masker import MaskingStrategy
-from core.recognizers.korean import KoreanRecognizers
 
 
 def load_dataset(csv_path: str) -> List[Tuple[str, str]]:
@@ -136,6 +136,80 @@ def print_report(evaluation: Dict):
     print("\n" + "=" * 70)
 
 
+def generate_markdown_report(evaluation: Dict, language: str = "ko") -> str:
+    """Generate a markdown report from evaluation results."""
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    lines = [
+        f"# PII Masking Validation Report - {language.upper()}",
+        "",
+        f"**Generated:** {timestamp}",
+        "",
+        "## Summary",
+        "",
+        f"| Metric | Value |",
+        f"|--------|-------|",
+        f"| Total test cases | {evaluation['total']} |",
+        f"| Exact matches | {evaluation['exact_matches']} |",
+        f"| Partial matches | {evaluation['partial_matches']} |",
+        f"| Exact accuracy | {evaluation['exact_accuracy']:.2%} |",
+        f"| Partial accuracy | {evaluation['partial_accuracy']:.2%} |",
+        "",
+        "## Detailed Results",
+        "",
+    ]
+    
+    # Separate passed and failed cases
+    passed = [r for r in evaluation['results'] if r['exact_match']]
+    failed = [r for r in evaluation['results'] if not r['exact_match']]
+    
+    if failed:
+        lines.append("### ❌ Failed Cases")
+        lines.append("")
+        for i, result in enumerate(failed, 1):
+            lines.append(f"#### Case {i}")
+            lines.append("")
+            lines.append(f"- **Input:** `{result['test_case']}`")
+            lines.append(f"- **Expected:** `{result['expected']}`")
+            lines.append(f"- **Got:** `{result['predicted']}`")
+            if result['entity_count']:
+                lines.append(f"- **Entities detected:** {result['entity_count']}")
+            lines.append("")
+    
+    if passed:
+        lines.append("### ✅ Passed Cases")
+        lines.append("")
+        for i, result in enumerate(passed, 1):
+            lines.append(f"- `{result['test_case']}` → `{result['predicted']}`")
+        lines.append("")
+    
+    # Status
+    status = "PASSED ✅" if evaluation['exact_accuracy'] >= 0.8 else "FAILED ❌"
+    lines.append(f"## Overall Status: {status}")
+    lines.append("")
+    
+    return "\n".join(lines)
+
+
+def save_report(evaluation: Dict, language: str = "ko") -> Path:
+    """Save evaluation report to markdown file."""
+    # Create report directory
+    report_dir = Path(__file__).parent.parent / "report"
+    report_dir.mkdir(exist_ok=True)
+    
+    # Generate filename with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"{timestamp}_{language}_validation_report.md"
+    filepath = report_dir / filename
+    
+    # Generate and save report
+    report_content = generate_markdown_report(evaluation, language)
+    filepath.write_text(report_content, encoding="utf-8")
+    
+    print(f"\n📄 Report saved to: {filepath}")
+    return filepath
+
+
 def main():
     """Run validation."""
     print("\n🔍 Loading Korean PII Dataset...\n")
@@ -146,15 +220,12 @@ def main():
     print(f"Loaded {len(dataset)} test cases from {csv_path}\n")
     
     # Initialize shield with Korean support
+    # RecognizerRegistry is automatically loaded from YAML config
     shield = PIIShield(
         languages=["en", "ko"],
         default_language="ko",
         default_strategy=MaskingStrategy.REPLACE
     )
-    
-    # Register Korean recognizers
-    for recognizer in KoreanRecognizers.get_all_recognizers():
-        shield.detector.analyzer.registry.add_recognizer(recognizer)
     
     # Evaluate
     print("Running evaluation...")
@@ -162,6 +233,9 @@ def main():
     
     # Print report
     print_report(evaluation)
+    
+    # Save report to file
+    save_report(evaluation, language="ko")
     
     # Return exit code based on accuracy
     if evaluation['exact_accuracy'] >= 0.8:

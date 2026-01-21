@@ -220,3 +220,6 @@ logs/
 *.onnx
 *.bin
 *.h5
+
+# Benchmark reports
+bench/report
