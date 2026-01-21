@@ -4,6 +4,19 @@
 
 PII Shield는 텍스트 데이터에서 개인식별정보(PII)를 탐지하고 마스킹하는 종합 라이브러리입니다. [Microsoft Presidio](https://github.com/microsoft/presidio)를 기반으로 구축되어, 다국어 지원과 함께 사용하기 쉬운 PII 보호 인터페이스를 제공합니다.
 
+## 🤖 AI 기반 개인정보 탐지
+
+PII Shield는 **AI 및 머신러닝 모델**을 활용하여 일반 텍스트(Plain Text)에서 민감한 개인정보를 자동으로 탐지합니다. spaCy 기반의 개체명 인식(NER) 모델과 커스텀 패턴 매칭을 사용하여 다음을 식별할 수 있습니다:
+
+- **사람 이름** - 대규모 데이터셋으로 학습된 NER 모델로 탐지
+- **이메일, 전화번호** - ML 검증을 통한 패턴 기반 탐지
+- **신용카드, 주민등록번호, 계좌번호** - 지능형 패턴 인식
+- **날짜, 위치, 조직** - 컨텍스트 인식 엔티티 추출
+
+이를 통해 PII Shield는 **PII 컴플라이언스 자동화**, **고객 데이터 보호**, **GDPR/개인정보보호법 준수**가 필요한 기업에 이상적인 솔루션입니다.
+
+> **💡 중요**: 기반이 되는 Presidio 모델은 Microsoft와 오픈소스 커뮤니티에 의해 지속적으로 개선되고 있습니다. 프로덕션 배포 시, **특정 언어와 도메인에 맞게 모델을 파인튜닝**하면 탐지 정확도를 크게 향상시킬 수 있습니다. 최적의 성능을 위해 조직의 데이터 패턴에 맞는 커스텀 학습을 권장합니다.
+
 ## ✨ 주요 기능
 
 - **PII 탐지**: 이름, 이메일, 전화번호, 신용카드 번호 등 다양한 유형의 PII 탐지
@@ -85,12 +98,12 @@ python -m spacy download ko_core_news_lg
 ```python
 from core import PIIShield
 
-# PII Shield 초기화
-shield = PIIShield()
+# PII Shield 초기화 (한국어 지원)
+shield = PIIShield(languages=["en", "ko"], default_language="ko")
 
 # PII 탐지 및 마스킹
-text = "Contact John Doe at john.doe@example.com or call 555-123-4567."
-result = shield.protect(text)
+text = "안녕하세요, 김철수입니다. 연락처는 010-1234-5678입니다."
+result = shield.protect(text, language="ko")
 
 print(f"원본: {result.original_text}")
 print(f"마스킹: {result.masked_text}")
@@ -99,9 +112,9 @@ print(f"탐지됨: {result.entity_count}")
 
 출력:
 ```
-원본: Contact John Doe at john.doe@example.com or call 555-123-4567.
-마스킹: Contact <PERSON> at <EMAIL_ADDRESS> or call <PHONE_NUMBER>.
-탐지됨: {'PERSON': 1, 'EMAIL_ADDRESS': 1, 'PHONE_NUMBER': 1}
+원본: 안녕하세요, 김철수입니다. 연락처는 010-1234-5678입니다.
+마스킹: 안녕하세요, <KR_NAME>입니다. 연락처는 <KR_PHONE_NUMBER>입니다.
+탐지됨: {'KR_NAME': 1, 'KR_PHONE_NUMBER': 1}
 ```
 
 ### 탐지만 수행
@@ -109,14 +122,20 @@ print(f"탐지됨: {result.entity_count}")
 ```python
 from core import PIIShield
 
-shield = PIIShield()
-text = "My credit card is 4111-1111-1111-1111"
+shield = PIIShield(languages=["en", "ko"], default_language="ko")
+text = "홍길동님의 주민등록번호는 900101-1234567입니다."
 
 # 마스킹 없이 탐지만 수행
-entities = shield.detect_only(text)
+entities = shield.detect_only(text, language="ko")
 
 for entity in entities:
     print(f"{entity.entity_type}: {text[entity.start:entity.end]} (점수: {entity.score:.2f})")
+```
+
+출력:
+```
+KR_NAME: 홍길동 (점수: 0.85)
+KR_SSN: 900101-1234567 (점수: 0.85)
 ```
 
 ### 다양한 마스킹 전략
@@ -128,27 +147,27 @@ from core.masker import MaskingStrategy
 text = "이메일: alice@example.com"
 
 # 치환 전략 (기본값)
-shield = PIIShield(default_strategy=MaskingStrategy.REPLACE)
-result = shield.protect(text)
-print(result.masked_text)  # 이메일: <EMAIL_ADDRESS>
+shield = PIIShield(languages=["en", "ko"], default_language="ko", default_strategy=MaskingStrategy.REPLACE)
+result = shield.protect(text, language="ko")
+print(result.masked_text)  # 이메일: <KR_EMAIL>
 
 # 삭제 전략
-shield = PIIShield(default_strategy=MaskingStrategy.REDACT)
-result = shield.protect(text)
+shield = PIIShield(languages=["en", "ko"], default_language="ko", default_strategy=MaskingStrategy.REDACT)
+result = shield.protect(text, language="ko")
 print(result.masked_text)  # 이메일: 
 
 # 해시 전략
-shield = PIIShield(default_strategy=MaskingStrategy.HASH)
-result = shield.protect(text)
+shield = PIIShield(languages=["en", "ko"], default_language="ko", default_strategy=MaskingStrategy.HASH)
+result = shield.protect(text, language="ko")
 print(result.masked_text)  # 이메일: a1b2c3d4...
 
 # 마스크 전략
-shield = PIIShield(default_strategy=MaskingStrategy.MASK)
-result = shield.protect(text)
+shield = PIIShield(languages=["en", "ko"], default_language="ko", default_strategy=MaskingStrategy.MASK)
+result = shield.protect(text, language="ko")
 print(result.masked_text)  # 이메일: *****************
 ```
 
-### 한국어 지원
+### 한국어 고급 사용법
 
 ```python
 from core import PIIShield
@@ -156,20 +175,22 @@ from core import PIIShield
 # 한국어 지원으로 초기화
 shield = PIIShield(languages=["en", "ko"], default_language="ko")
 
-text = "김철수님의 이메일은 chulsoo@example.com입니다."
+# 다양한 한국어 PII 탐지
+text = "정약용 고객님의 계좌 987-654-321098로 환불 처리됩니다."
 result = shield.protect(text, language="ko")
 
 print(result.masked_text)
+# 출력: <KR_NAME> 고객님의 계좌 <KR_BANK_ACCOUNT>로 환불 처리됩니다.
 ```
 
 ### CLI 사용법
 
 ```bash
 # PII 탐지
-pii-shield detect "john@example.com으로 연락주세요"
+pii-shield detect "홍길동님의 연락처는 010-1234-5678입니다"
 
 # PII 마스킹
-pii-shield mask "제 이메일은 john@example.com입니다" --strategy replace
+pii-shield mask "제 이메일은 hong@example.com입니다" --strategy replace
 
 # 파일 처리
 pii-shield file input.txt -o output.txt --strategy redact

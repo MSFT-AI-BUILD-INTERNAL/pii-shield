@@ -4,6 +4,19 @@
 
 PII Shield is a comprehensive library for detecting and masking Personally Identifiable Information (PII) in text data. Built on top of [Microsoft Presidio](https://github.com/microsoft/presidio), it provides an easy-to-use interface for PII protection with multi-language support.
 
+## 🤖 AI-Powered PII Detection
+
+PII Shield leverages **AI and Machine Learning models** to automatically detect sensitive personal information in plain text. Using Named Entity Recognition (NER) models powered by spaCy and custom pattern matching, it can identify:
+
+- **Person Names** - Detected using NER models trained on large datasets
+- **Email Addresses, Phone Numbers** - Pattern-based detection with ML validation
+- **Credit Cards, SSN, Bank Accounts** - Intelligent pattern recognition
+- **Dates, Locations, Organizations** - Context-aware entity extraction
+
+This makes PII Shield ideal for enterprises looking to **automate PII compliance**, **protect customer data**, and **ensure GDPR/CCPA compliance** without manual review.
+
+> **💡 Important**: The underlying Presidio models are continuously being improved by Microsoft and the open-source community. For production deployments, **fine-tuning the models for your specific language and domain** can significantly improve detection accuracy. Custom training with your organization's data patterns is recommended for optimal performance.
+
 ## ✨ Features
 
 - **PII Detection**: Detect various types of PII including names, emails, phone numbers, credit cards, and more
