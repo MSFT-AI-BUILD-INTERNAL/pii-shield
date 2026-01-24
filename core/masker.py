@@ -145,6 +145,7 @@ class PIIMasker:
                     {"hash_type": "sha256"}
                 )
             elif strategy == MaskingStrategy.MASK:
+                # Mask with '*' characters only (no labels)
                 operators[entity_type] = OperatorConfig(
                     "mask",
                     {"chars_to_mask": 100, "masking_char": "*", "from_end": False}

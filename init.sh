@@ -40,7 +40,7 @@ uv --version
 # ==========================================
 echo ""
 echo "Syncing project dependencies with UV..."
-cd /workspaces/aibuild-mi-agenticmarketing
+cd /workspaces/pii-shield
 uv sync
 
 echo ""

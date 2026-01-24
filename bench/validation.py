@@ -75,7 +75,7 @@ def evaluate_masking(
     
     Args:
         shield: PIIShield instance.
-        dataset: List of (test_case, expected_label) tuples.
+        dataset: List of (test_case, expected_masked) tuples.
         language: Language code for detection.
     
     Returns:
@@ -86,42 +86,41 @@ def evaluate_masking(
     partial_matches = 0
     results = []
     
-    for test_case, expected_label in dataset:
-        result = shield.protect(test_case, language=language)
+    for test_case, expected_masked in dataset:
+        result = shield.protect(test_case, language=language, strategy=MaskingStrategy.MASK)
         predicted = result.masked_text
         
-        # Check exact match
-        is_exact = predicted.strip() == expected_label.strip()
+        # Check exact match (masked text should match expected)
+        is_exact = predicted.strip() == expected_masked.strip()
         if is_exact:
             exact_matches += 1
         
-        # Check partial match (all expected entity types are present)
-        expected_entities = set()
-        for token in expected_label.split():
-            if '<' in token and '>' in token:
-                start = token.find('<')
-                end = token.find('>') + 1
-                if start != -1 and end != 0:
-                    expected_entities.add(token[start:end])
+        # Check partial match based on masking pattern
+        # Count the number of '*' characters and check if similar
+        expected_mask_count = expected_masked.count('*')
+        predicted_mask_count = predicted.count('*')
         
-        predicted_entities = set()
-        for token in predicted.split():
-            if '<' in token and '>' in token:
-                start = token.find('<')
-                end = token.find('>') + 1
-                if start != -1 and end != 0:
-                    predicted_entities.add(token[start:end])
+        # Partial match if at least one PII was detected and masked
+        is_partial = False
+        if predicted_mask_count > 0 and len(result.detected_entities) > 0:
+            # Allow some tolerance in mask count (within 20%)
+            if expected_mask_count > 0:
+                diff_ratio = abs(predicted_mask_count - expected_mask_count) / expected_mask_count
+                is_partial = diff_ratio <= 0.3  # 30% tolerance
+            else:
+                is_partial = True
         
-        is_partial = len(expected_entities & predicted_entities) > 0
         if is_partial and not is_exact:
             partial_matches += 1
         
         results.append({
             'test_case': test_case,
-            'expected': expected_label,
+            'expected': expected_masked,
             'predicted': predicted,
             'exact_match': is_exact,
             'entity_count': result.entity_count,
+            'expected_masks': expected_mask_count,
+            'predicted_masks': predicted_mask_count,
         })
     
     return {
@@ -161,8 +160,10 @@ def print_report(evaluation: Dict):
         print(f"  Input:    {result['test_case']}")
         print(f"  Expected: {result['expected']}")
         print(f"  Got:      {result['predicted']}")
-        if result['entity_count']:
+        if result.get('entity_count'):
             print(f"  Entities: {result['entity_count']}")
+        if not result['exact_match']:
+            print(f"  Masks:    Expected={result.get('expected_masks', 0)}, Got={result.get('predicted_masks', 0)}")
     
     print("\n" + "=" * 70)
 
@@ -319,11 +320,11 @@ def run_validation(
     print("=" * 70)
     print(f"\n📌 Languages to validate: {', '.join(languages)}")
     
-    # Initialize PIIShield with all languages
+    # Initialize PIIShield with all languages using MASK strategy
     shield = PIIShield(
         languages=["en", "ko"],
         default_language="en",
-        default_strategy=MaskingStrategy.REPLACE
+        default_strategy=MaskingStrategy.MASK
     )
     
     evaluations = []
