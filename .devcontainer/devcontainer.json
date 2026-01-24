@@ -1,5 +1,5 @@
 {
-  "name": "Agentic Marketing Dev Container",
+  "name": "PII Shield Dev Container",
   "image": "mcr.microsoft.com/devcontainers/python:3.12",
   "features": {
   },
